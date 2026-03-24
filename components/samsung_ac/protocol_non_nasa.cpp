@@ -25,6 +25,11 @@ namespace esphome
         static bool pending_control_tx_ = false;
         static uint32_t pending_control_tx_due_ms_ = 0;
 
+        // Startup delay to prevent flooding the HVAC bus system
+        static bool startup_delay_complete_ = false;
+        static uint32_t startup_delay_start_time_ = 0;
+        constexpr uint32_t STARTUP_DELAY_MS = 40000; // 40 seconds delay
+
         // Track cumulative energy calculation per device address
         // Note: Energy tracker persists across device reconnections. This is intentional to maintain
         // cumulative energy across device restarts. The tracker is keyed by device address, so if
@@ -1012,6 +1017,29 @@ namespace esphome
 
         void NonNasaProtocol::protocol_update(MessageTarget *target)
         {
+            // Initialize startup delay timer on first call
+            if (!startup_delay_complete_ && startup_delay_start_time_ == 0)
+            {
+                startup_delay_start_time_ = millis();
+                LOGD("Non-NASA protocol startup delay started");
+            }
+
+            // Check if startup delay has elapsed
+            if (!startup_delay_complete_)
+            {
+                const uint32_t now = millis();
+                if (now - startup_delay_start_time_ >= STARTUP_DELAY_MS)
+                {
+                    startup_delay_complete_ = true;
+                    LOGD("Non-NASA protocol startup delay completed");
+                }
+                else
+                {
+                    // Still in startup delay period, don't send any messages
+                    return;
+                }
+            }
+
             // non-blocking keepalive send (scheduled from broadcast request)
             if (non_nasa_keepalive && pending_keepalive_)
             {
@@ -1045,7 +1073,8 @@ namespace esphome
 
             // If we're not currently registered, keep sending a registration request until it has
             // been confirmed by the outdoor unit.
-            if (!controller_registered)
+            // Only send registration after startup delay has completed
+            if (!controller_registered && startup_delay_complete_)
             {
                 send_register_controller(target);
             }
@@ -1071,9 +1100,10 @@ namespace esphome
             // If we have any *unsent* messages in the queue for over 1000ms, it likely means the indoor
             // and/or outdoor unit has gone to sleep due to inactivity. Send a registration request to
             // wake the unit up.
+            // Only send wake-up registration after startup delay has completed
             for (auto &item : nonnasa_requests)
             {
-                if (item.time_sent == 0 && now - item.time > 1000 && item.resend_count == 0 && item.retry_count == 0)
+                if (item.time_sent == 0 && now - item.time > 1000 && item.resend_count == 0 && item.retry_count == 0 && startup_delay_complete_)
                 {
                     // Both the outdoor and the indoor unit must be awake before we can send a command
                     indoor_unit_awake = false;
