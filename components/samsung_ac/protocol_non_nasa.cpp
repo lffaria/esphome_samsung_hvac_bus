@@ -28,7 +28,8 @@ namespace esphome
         // Startup delay to prevent flooding the HVAC bus system
         static bool startup_delay_complete_ = false;
         static uint32_t startup_delay_start_time_ = 0;
-        constexpr uint32_t STARTUP_DELAY_MS = 40000; // 40 seconds delay
+        // constexpr uint32_t STARTUP_DELAY_MS = 40000; // 40 seconds delay AC50
+        constexpr uint32_t STARTUP_DELAY_MS = 60000; // 60 seconds delay AC70
 
         // Track cumulative energy calculation per device address
         // Note: Energy tracker persists across device reconnections. This is intentional to maintain
