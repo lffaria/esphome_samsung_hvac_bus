@@ -3,6 +3,7 @@
 #include "log.h"
 #include "protocol_nasa.h"
 #include "protocol_non_nasa.h"
+#include <algorithm>
 
 namespace esphome
 {
