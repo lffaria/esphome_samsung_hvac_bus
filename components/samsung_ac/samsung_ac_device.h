@@ -411,6 +411,10 @@ namespace esphome
       {
         if (climate != nullptr)
         {
+          // 0 means "no alt mode active" — nothing to apply.
+          if (static_cast<int>(value) == 0)
+            return;
+          
           auto supported = get_supported_alt_modes();
           auto mode = std::find_if(supported->begin(), supported->end(), [&value](const AltModeDesc &x)
                                    { return x.value == value; });
