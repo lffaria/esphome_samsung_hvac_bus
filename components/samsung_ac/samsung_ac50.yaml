@@ -1,0 +1,126 @@
+## BASIC CONFIGURATION
+esphome:
+  name: samsung_ac
+  friendly_name: AC_50_2
+  on_boot:
+    priority: 600
+    then:
+      - logger.log: "A aguardar 20 segundos antes do arranque normal..."
+      - delay: 20s
+      - logger.log: "Boot delay de 20s concluido."
+
+esp32:
+  board: m5stack-atom
+
+web_server:
+  port: 80
+
+logger:
+  logs:
+    component: ERROR
+
+api:
+
+ota:
+  platform: esphome
+
+wifi:
+  ssid: "AP1oAndar"
+  password: "3jWwAK5UN3nLjZMnmk"
+
+captive_portal:
+
+uart:
+  tx_pin: GPIO26
+  rx_pin: GPIO32
+  baud_rate: 2400
+  parity: EVEN
+
+## SAMSUNG AC CONFIGURATION
+external_components:
+  - source: github://lffaria/esphome_samsung_hvac_bus@main
+    components: [samsung_ac]
+
+samsung_ac:
+  non_nasa_keepalive: true
+  non_nasa_tx_delay_ms: 30
+
+  # Atraso inicial antes da primeira tentativa de registo (ms).
+  # Substitui a antiga constante STARTUP_DELAY_MS.
+  startup_delay_ms: 80000
+
+  # Intervalo mínimo entre chamadas a send_register_controller() (ms).
+  # Evita inundar o barramento com mensagens de registo.
+  register_retry_interval_ms: 5000
+
+  debug_log_messages_on_change: true
+  debug_log_undefined_messages: false
+  debug_log_messages: false
+
+  capabilities:
+    fan_modes: true
+    vertical_swing: true
+    horizontal_swing: false
+    presets:
+      quiet: true
+      fast:
+        name: "Fast cooling"
+        enabled: true
+
+  devices:
+    - address: "00"
+      map_auto_to_heat_cool: false
+      capabilities:
+        horizontal_swing: false
+      climate:
+        name: "Escritorio climate"
+      room_temperature:
+        name: "Escritorio temperature"
+      target_temperature:
+        name: "Escritorio target temperature"
+      power:
+        name: "Escritorio power"
+      mode:
+        name: "Escritorio mode"
+      room_temperature_offset: 0
+      indoor_eva_in_temperature:
+        name: "Escritorio EVA In temperature"
+      indoor_eva_out_temperature:
+        name: "Escritorio EVA Out temperature"
+
+    - address: "01"
+      map_auto_to_heat_cool: false
+      capabilities:
+        horizontal_swing: false
+      climate:
+        name: "Sala sul climate"
+      room_temperature:
+        name: "Sala sul temperature"
+      target_temperature:
+        name: "Sala sul target temperature"
+      power:
+        name: "Sala sul power"
+      mode:
+        name: "Sala sul mode"
+      room_temperature_offset: 0
+      indoor_eva_in_temperature:
+        name: "Sala sul EVA In temperature"
+      indoor_eva_out_temperature:
+        name: "Sala sul EVA Out temperature"
+
+    - address: "c8"
+      error_code:
+        name: error_code
+      outdoor_operation_odu_mode:
+        name: "Out50 ODU Mode"
+      outdoor_operation_heatcool:
+        name: "Out50 ODU Heat Cool"
+      outdoor_instantaneous_power:
+        name: "Out50 Outdoor Instantaneous Power"
+      outdoor_cumulative_energy:
+        name: "Out50 Outdoor Cumulative Energy"
+      outdoor_current:
+        name: "Out50 Outdoor Current"
+      outdoor_voltage:
+        name: "Out50 Outdoor Voltage"
+        

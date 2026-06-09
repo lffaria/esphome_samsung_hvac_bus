@@ -246,6 +246,13 @@ namespace esphome
 
             void publish_request(MessageTarget *target, const std::string &address, ProtocolRequest &request) override;
             void protocol_update(MessageTarget *target) override;
+
+            // Configurable timings (ms) - set via YAML
+            static uint32_t startup_delay_ms;
+            static uint32_t register_retry_interval_ms;
+
+            static void set_startup_delay_ms(uint32_t value) { startup_delay_ms = value; }
+            static void set_register_retry_interval_ms(uint32_t value) { register_retry_interval_ms = value; }
         };
     } // namespace samsung_ac
 } // namespace esphome

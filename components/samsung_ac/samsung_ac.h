@@ -107,6 +107,16 @@ namespace esphome
         non_nasa_tx_delay_ms = value;
       }
 
+      void set_startup_delay_ms(uint32_t value)
+      {
+        non_nasa_startup_delay_ms_ = value;
+      }
+
+      void set_register_retry_interval_ms(uint32_t value)
+      {
+        non_nasa_register_retry_interval_ms_ = value;
+      }
+
       void set_debug_log_undefined_messages(bool value)
       {
         debug_log_undefined_messages = value;
@@ -300,6 +310,9 @@ namespace esphome
       uint16_t debug_mqtt_port = 1883;
       std::string debug_mqtt_username = "";
       std::string debug_mqtt_password = "";
+
+      uint32_t non_nasa_startup_delay_ms_{80000};
+      uint32_t non_nasa_register_retry_interval_ms_{5000};
     };
 
   } // namespace samsung_ac

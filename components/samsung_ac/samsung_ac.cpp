@@ -3,6 +3,7 @@
 #include "util.h"
 #include "log.h"
 #include <vector>
+#include "protocol_non_nasa.h"
 
 namespace esphome
 {
@@ -10,6 +11,10 @@ namespace esphome
   {
     void Samsung_AC::setup()
     {
+      // Propagate YAML-configured timings to the Non-NASA protocol
+      NonNasaProtocol::set_startup_delay_ms(non_nasa_startup_delay_ms_);
+      NonNasaProtocol::set_register_retry_interval_ms(non_nasa_register_retry_interval_ms_);
+
       if (debug_log_messages)
       {
         LOGW("setup");

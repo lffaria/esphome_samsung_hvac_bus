@@ -28,8 +28,15 @@ namespace esphome
         // Startup delay to prevent flooding the HVAC bus system
         static bool startup_delay_complete_ = false;
         static uint32_t startup_delay_start_time_ = 0;
-        constexpr uint32_t STARTUP_DELAY_MS = 80000; // 80 seconds delay AC50
+        // constexpr uint32_t STARTUP_DELAY_MS = 80000; // 80 seconds delay AC50
         // constexpr uint32_t STARTUP_DELAY_MS = 60000; // 60 seconds delay AC70
+
+        // Defaults (overridable via YAML)
+        uint32_t NonNasaProtocol::startup_delay_ms = 80000;          // 80 s default
+        uint32_t NonNasaProtocol::register_retry_interval_ms = 5000; // 5 s default
+
+        // Tracks last invocation of send_register_controller() in the retry loop
+        static uint32_t last_register_attempt_ms_ = 0;
 
         // Track cumulative energy calculation per device address
         // Note: Energy tracker persists across device reconnections. This is intentional to maintain
@@ -1029,7 +1036,8 @@ namespace esphome
             if (!startup_delay_complete_)
             {
                 const uint32_t now = millis();
-                if (now - startup_delay_start_time_ >= STARTUP_DELAY_MS)
+                // if (now - startup_delay_start_time_ >= STARTUP_DELAY_MS)
+                if (now - startup_delay_start_time_ >= NonNasaProtocol::startup_delay_ms)
                 {
                     startup_delay_complete_ = true;
                     LOGD("Non-NASA protocol startup delay completed");
@@ -1074,10 +1082,18 @@ namespace esphome
 
             // If we're not currently registered, keep sending a registration request until it has
             // been confirmed by the outdoor unit.
-            // Only send registration after startup delay has completed
+            // Throttled: at most one attempt every register_retry_interval_ms (configurable via YAML).
             if (!controller_registered && startup_delay_complete_)
             {
-                send_register_controller(target);
+                const uint32_t now = millis();
+                if (last_register_attempt_ms_ == 0 ||
+                    (now - last_register_attempt_ms_) >= NonNasaProtocol::register_retry_interval_ms)
+                {
+                    LOGD("send_register_controller() retry (interval=%u ms)",
+                        NonNasaProtocol::register_retry_interval_ms);
+                    send_register_controller(target);
+                    last_register_attempt_ms_ = now;
+                }
             }
 
             // If we have *any* messages in the queue for longer than 15s, assume failure and
