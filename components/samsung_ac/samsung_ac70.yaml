@@ -1,0 +1,285 @@
+# This example provides a basic configuration and description based on the M5STACK components
+# For further configuration you should visit the ESPHome docs https://esphome.io
+# Every line starting with a # can be removed.
+
+## BASIC CONFIGURATION
+esphome:
+  name: samsung_ac_70
+  friendly_name: AC_70_3
+  on_boot:
+    priority: 600
+    then:
+      - logger.log: "A aguardar 120 segundos antes do arranque normal..."
+      - delay: 120s
+      - logger.log: "Boot delay de 120s concluido."
+
+
+# Select chipset and board configuration - in this case M5STACK
+esp32:
+  variant: ESP32S3
+  board: esp32-s3-devkitc-1
+  framework:
+    type: arduino
+    # type: esp-idf
+    # version: 5.3.2
+    ## platform_version: 5.4.0
+
+# [Optional] - Create web interface where you can control the AC from your web browser (without Home Assistant)
+web_server:
+  port: 80
+
+# Enable logging
+logger:
+  logs:
+    component: ERROR # Remove the "Your component takes to long to respond warning"
+
+# Enable native API for communication with Home Assistant, this can be removed if you do not plan to use it with Home Assistant
+api:
+
+# Enable OTA firmware update, you will be able to upload the firmware over WiFi without connecting the device by cables
+ota:
+  platform: esphome
+
+# Setup your WiFi password
+wifi:
+  ssid: "AP1oAndar" # "NOWO-A83AC" # !!!CHANGE ME!!!
+  password: "3jWwAK5UN3nLjZMnmk" # !!!CHANGE ME!!!
+
+captive_portal:
+
+# Specify pins used by the board to comunicate with RS485 board - in this case M5STACK
+uart:
+  tx_pin: GPIO2 # Use GPIO19 for ATOM RS-485 Base    # Use GPIO26 for ATOM Tail485 # Use GPIO1 for MStack AtomeS3 Lite and Atom Tail485
+  rx_pin: GPIO1 # Use GPIO22 for ATOM RS-485 Base    # Use GPIO32 for ATOM Tail485 # Use GPIO2 for MStack AtomeS3 Lite and Atom Tail485
+  # For older devices it could also be 2400. But you should start with 9600.
+  baud_rate: 2400
+  parity: EVEN
+
+## SAMSUNG AC CONFIGURATION
+
+# Import custom component from GitHub
+external_components:
+  #- source: github://omerfaruk-aran/esphome_samsung_hvac_bus@main
+  - source: github://lffaria/esphome_samsung_hvac_bus@main
+    components: [samsung_ac]
+  #- source: github://omerfaruk-aran/esphome_samsung_hvac_bus@main # Use @stable if you want a more stable experience, but note a lot of this example code breaks.
+  #  components: [samsung_ac]
+
+# Configuration of AC component
+samsung_ac:
+
+  # non_nasa_keepalive: Prevents some Non-NASA units from sleeping when idle.
+  # This increases bus traffic slightly; disable if you don't need idle telemetry.
+  non_nasa_keepalive: true
+
+  # (Non-NASA only) Optional TX delay before sending frames (in milliseconds).
+  # Use this if you see unstable communication (missed responses / collisions) on the bus.
+  # 0 = no delay (send immediately). Recommended tuning range: 10–50 ms; 30 ms is a safe starting point.
+  # Note: Setting this too high can make commands/keepalives feel slower.
+  non_nasa_tx_delay_ms: 30
+
+  # Atraso inicial antes da primeira tentativa de registo (ms).
+  # Substitui a antiga constante STARTUP_DELAY_MS.
+  startup_delay_ms: 80000
+
+  # Intervalo mínimo entre chamadas a send_register_controller() (ms).
+  # Evita inundar o barramento com mensagens de registo.
+  register_retry_interval_ms: 5000
+
+
+  # Enable 'debug_log_messages_on_change' to log sensor data changes within 120 seconds
+  # When set to true, this option logs the sensor data only when the value changes within a 120-second interval,
+  # reducing redundant log messages and focusing on real-time data changes.
+  debug_log_messages_on_change: true  # Enable log messages on change within 120 seconds
+  
+  # When enabled (set to true), this option will log the messages associated with undefined codes on the device. This is useful for debugging and identifying any unexpected or unknown codes that the device may receive during operation.
+  debug_log_undefined_messages: false
+  
+  # When enabled (set to true), this option logs messages associated with defined codes on the device. This helps in monitoring the behavior of the device by recording the activity related to known, expected codes.
+  debug_log_messages: false
+
+  # For half duplex RS485 board with DI, DE, RE, and RO pins, you have to control read/write with control pin
+  # see https://microcontrollerslab.com/rs485-serial-communication-esp32-esp8266-tutorial/ for wiring
+  #flow_control_pin: GPIO4
+
+  # Capabilities: Define which features your AC system supports.
+  # - fan_modes is enabled by default (fan speed controls will be shown in HA)
+  # - vertical_swing and horizontal_swing are disabled by default
+  # You can set these globally here, or override per indoor unit under `devices:`
+  capabilities:
+    fan_modes: true
+    vertical_swing: true
+    horizontal_swing: false
+    # Presets define special AC modes like Windfree, Eco, and so on. 
+    # The following modes are available: sleep, quiet, fast, longreach, windfree, eco.
+    presets: 
+      # Short version - a quick and simple way to enable presets.
+      quiet: true
+      # Long version - allows customization, including localized names and control over enabling the presets.
+      fast:
+        name: "Fast cooling"
+        enabled: true
+
+  devices:
+    # Skip everything below on the first run! Wait a minute, watch your ESPHome logs until you see the "Discovered devices:" section and you see some addresses:
+    # For NASA devices it looks like this (with 1 outdoor device and 4 indoor devices): 
+    #   Outdoor: 10.00.00
+    #   Indoor:  20.00.00, 20.00.01, 20.00.02, 20.00.03
+    # For NonNASA devices it looks like this (with 2 indoor devices): 
+    #   Indoor:  00, 01
+    # You need these addresses for the the sections below. If you see only a "-" then you should visit the troubleshooting section in the readme. 
+
+    # Repeat everything below for each indoor device address you see in your logs
+    - address: "01" # "20.00.00" # Indoor device address 
+      # Each property below is optional (climate, room_temperature etc.) - you can delete those which you dont need.
+      # For the names we suggest to choose a combination of room name and the thing it controls. 
+
+      # Optional: show Samsung Auto as HA Heat/Cool (allows setting target temp in HA UI)
+      map_auto_to_heat_cool: false
+
+      # Configures/overrides the capabilites for this devices. 
+      # Look above for all options.
+      capabilities:
+        horizontal_swing: false # This device have no h swing. 
+
+      # Creates climate control in Home Assistant. A climate control combines multiple of the controls below (like temperature, mode etc.)
+      climate:
+        name: "Quarto suite 1 andar climate"
+
+      # The controls directly below are all included in the climate control. Its adviced to only add the climate control and skip the extra controls.
+      room_temperature:
+        name: "Quarto suite 1 andar temperature"
+      target_temperature:
+        name: "Quarto suite 1 andar target temperature"
+      power:
+        name: "Quarto suite 1 andar power"
+      mode:
+        name: "Quarto suite 1 andar mode"
+
+
+      # If your AC sits near or inside the ceiling, the reported room temperature is often a little bit heigher then whats 
+      # measured below. This property can be used to correct that value.
+      room_temperature_offset: 0 #-1.4
+
+      # EVA (Evaporator) temperatures - measures refrigerant temperatures at the indoor unit
+      # These sensors help monitor system performance and diagnose issues
+      # Supported on both NASA and Non-NASA devices
+      indoor_eva_in_temperature:
+        name: "Quarto suite 1 andar EVA In temperature"
+      indoor_eva_out_temperature:
+        name: "Quarto suite 1 andar EVA Out temperature"
+
+    - address: "02" # "20.00.00" # Indoor device address 
+      # Each property below is optional (climate, room_temperature etc.) - you can delete those which you dont need.
+      # For the names we suggest to choose a combination of room name and the thing it controls. 
+
+      # Optional: show Samsung Auto as HA Heat/Cool (allows setting target temp in HA UI)
+      map_auto_to_heat_cool: false
+
+      # Configures/overrides the capabilites for this devices. 
+      # Look above for all options.
+      capabilities:
+        horizontal_swing: false # This device have no h swing. 
+
+      # Creates climate control in Home Assistant. A climate control combines multiple of the controls below (like temperature, mode etc.)
+      climate:
+        name: "Hall climate"
+
+      # The controls directly below are all included in the climate control. Its adviced to only add the climate control and skip the extra controls.
+      room_temperature:
+        name: "Hall temperature"
+      target_temperature:
+        name: "Hall target temperature"
+      power:
+        name: "Hall power"
+      mode:
+        name: "Hall mode"
+
+
+      # If your AC sits near or inside the ceiling, the reported room temperature is often a little bit heigher then whats 
+      # measured below. This property can be used to correct that value.
+      room_temperature_offset: 0 #-1.4
+
+      # EVA (Evaporator) temperatures - measures refrigerant temperatures at the indoor unit
+      # These sensors help monitor system performance and diagnose issues
+      # Supported on both NASA and Non-NASA devices
+      indoor_eva_in_temperature:
+        name: "Hall EVA In temperature"
+      indoor_eva_out_temperature:
+        name: "Hall EVA Out temperature"
+
+    - address: "03" # "20.00.00" # Indoor device address 
+      # Each property below is optional (climate, room_temperature etc.) - you can delete those which you dont need.
+      # For the names we suggest to choose a combination of room name and the thing it controls. 
+
+      # Optional: show Samsung Auto as HA Heat/Cool (allows setting target temp in HA UI)
+      map_auto_to_heat_cool: false
+
+      # Configures/overrides the capabilites for this devices. 
+      # Look above for all options.
+      capabilities:
+        horizontal_swing: false # This device have no h swing. 
+
+      # Creates climate control in Home Assistant. A climate control combines multiple of the controls below (like temperature, mode etc.)
+      climate:
+        name: "Sala norte climate"
+
+      # The controls directly below are all included in the climate control. Its adviced to only add the climate control and skip the extra controls.
+      room_temperature:
+        name: "Sala norte temperature"
+      target_temperature:
+        name: "Sala norte target temperature"
+      power:
+        name: "Sala norte power"
+      mode:
+        name: "Sala norte mode"
+
+
+      # If your AC sits near or inside the ceiling, the reported room temperature is often a little bit heigher then whats 
+      # measured below. This property can be used to correct that value.
+      room_temperature_offset: 0 #-1.4
+
+      # EVA (Evaporator) temperatures - measures refrigerant temperatures at the indoor unit
+      # These sensors help monitor system performance and diagnose issues
+      # Supported on both NASA and Non-NASA devices
+      indoor_eva_in_temperature:
+        name: "Sala norte EVA In temperature"
+      indoor_eva_out_temperature:
+        name: "Sala norte EVA Out temperature"
+
+    - address: "c8" #"10.00.00" # Outdoor device address as the following components are dependent on an outdoor unit.
+      # This sensor captures and monitors specific error codes returned by the HVAC system.
+      # When an error occurs, the sensor detects the error code and updates its value accordingly.
+      # Additionally, by using the blueprint available at https://github.com/omerfaruk-aran/esphome_samsung_ac_blueprint,
+      # you can automatically send detailed error messages to your mobile devices based on the captured error codes.
+      error_code:
+        name: error_code
+
+       # Outdoor operation mode text sensor
+      outdoor_operation_odu_mode:
+        name: "Out70 ODU Mode"  # Displays the operational mode of the outdoor unit
+
+      # Outdoor operation heat/cool mode text sensor
+      outdoor_operation_heatcool:
+        name: "Out70 ODU Heat Cool"  # Displays whether the outdoor unit is in heating or cooling mode
+      # This sensor measures the instantaneous power consumption of the outdoor unit in Watts.
+      # The captured value represents the current power draw of the outdoor HVAC components, helping track energy usage patterns.
+      outdoor_instantaneous_power:
+        name: "Out70 Outdoor Instantaneous Power"
+
+      # This sensor records the cumulative energy consumption of the outdoor unit in kWh.
+      # It calculates the total energy consumed over time, allowing users to monitor and analyze energy efficiency.
+      outdoor_cumulative_energy:
+        name: "Out70 Outdoor Cumulative Energy"
+
+      # This sensor measures the current drawn by the outdoor unit in Amperes.
+      # Monitoring current values helps identify electrical irregularities and ensure safe power levels in the system.
+      outdoor_current:
+        name: "Out70 Outdoor Current"
+
+      # This sensor tracks the voltage supplied to the outdoor unit in Volts.
+      # Consistent voltage readings indicate stable power delivery, while deviations can help detect electrical issues in the system.
+      outdoor_voltage:
+        name: "Out70 Outdoor Voltage"
+
+

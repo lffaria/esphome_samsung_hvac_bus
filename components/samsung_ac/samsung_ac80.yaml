@@ -1,0 +1,167 @@
+## BASIC CONFIGURATION
+esphome:
+  name: samsung_ac
+  friendly_name: AC_80_4
+  on_boot:
+    priority: 600
+    then:
+      - logger.log: "A aguardar 220 segundos antes do arranque normal..."
+      - delay: 220s
+      - logger.log: "Boot delay de 220s concluido."
+
+esp32:
+  board: m5stack-atom
+
+web_server:
+  port: 80
+
+logger:
+  logs:
+    component: ERROR
+
+api:
+
+ota:
+  platform: esphome
+
+wifi:
+  ssid: "AP1oAndar"
+  password: "3jWwAK5UN3nLjZMnmk"
+
+captive_portal:
+
+uart:
+  tx_pin: GPIO2 # Use GPIO19 for ATOM RS-485 Base    # Use GPIO26 for ATOM Tail485 # Use GPIO1 for MStack AtomeS3 Lite and Atom Tail485
+  rx_pin: GPIO1 # Use GPIO22 for ATOM RS-485 Base    # Use GPIO32 for ATOM Tail485 # Use GPIO2 for MStack AtomeS3 Lite and Atom Tail485
+  # For older devices it could also be 2400. But you should start with 9600.
+  baud_rate: 2400
+  parity: EVEN
+
+## SAMSUNG AC CONFIGURATION
+external_components:
+  - source: github://lffaria/esphome_samsung_hvac_bus@main
+    components: [samsung_ac]
+
+samsung_ac:
+  non_nasa_keepalive: true
+  non_nasa_tx_delay_ms: 30
+
+  # Atraso inicial antes da primeira tentativa de registo (ms).
+  # Substitui a antiga constante STARTUP_DELAY_MS.
+  startup_delay_ms: 80000
+
+  # Intervalo mínimo entre chamadas a send_register_controller() (ms).
+  # Evita inundar o barramento com mensagens de registo.
+  register_retry_interval_ms: 5000
+
+  debug_log_messages_on_change: true
+  debug_log_undefined_messages: false
+  debug_log_messages: false
+
+  capabilities:
+    fan_modes: true
+    vertical_swing: true
+    horizontal_swing: false
+    presets:
+      quiet: true
+      fast:
+        name: "Fast cooling"
+        enabled: true
+
+  devices:
+    - address: "00"
+      map_auto_to_heat_cool: false
+      capabilities:
+        horizontal_swing: false
+      climate:
+        name: "00"
+      room_temperature:
+        name: "00 temperature"
+      target_temperature:
+        name: "00 target temperature"
+      power:
+        name: "00 power"
+      mode:
+        name: "00 mode"
+      room_temperature_offset: 0
+      indoor_eva_in_temperature:
+        name: "00 EVA In temperature"
+      indoor_eva_out_temperature:
+        name: "00 EVA Out temperature"
+
+    - address: "01"
+      map_auto_to_heat_cool: false
+      capabilities:
+        horizontal_swing: false
+      climate:
+        name: "01"
+      room_temperature:
+        name: "01 temperature"
+      target_temperature:
+        name: "01 target temperature"
+      power:
+        name: "01 power"
+      mode:
+        name: "01 mode"
+      room_temperature_offset: 0
+      indoor_eva_in_temperature:
+        name: "01 EVA In temperature"
+      indoor_eva_out_temperature:
+        name: "01 EVA Out temperature"
+
+    - address: "02"
+      map_auto_to_heat_cool: false
+      capabilities:
+        horizontal_swing: false
+      climate:
+        name: "02"
+      room_temperature:
+        name: "02 temperature"
+      target_temperature:
+        name: "02 target temperature"
+      power:
+        name: "02 power"
+      mode:
+        name: "02 mode"
+      room_temperature_offset: 0
+      indoor_eva_in_temperature:
+        name: "02 EVA In temperature"
+      indoor_eva_out_temperature:
+        name: "02 EVA Out temperature"
+    
+    - address: "03"
+      map_auto_to_heat_cool: false
+      capabilities:
+        horizontal_swing: false
+      climate:
+        name: "03"
+      room_temperature:
+        name: "03 temperature"
+      target_temperature:
+        name: "03 target temperature"
+      power:
+        name: "03 power"
+      mode:
+        name: "03 mode"
+      room_temperature_offset: 0
+      indoor_eva_in_temperature:
+        name: "03 EVA In temperature"
+      indoor_eva_out_temperature:
+        name: "03 EVA Out temperature"
+
+    - address: "c8"
+      error_code:
+        name: error_code
+      outdoor_operation_odu_mode:
+        name: "Out80 ODU Mode"
+      outdoor_operation_heatcool:
+        name: "Out80 ODU Heat Cool"
+      outdoor_instantaneous_power:
+        name: "Out80 Outdoor Instantaneous Power"
+      outdoor_cumulative_energy:
+        name: "Out80 Outdoor Cumulative Energy"
+      outdoor_current:
+        name: "Out80 Outdoor Current"
+      outdoor_voltage:
+        name: "Out80 Outdoor Voltage"
+        
